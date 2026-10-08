@@ -1,0 +1,1796 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tool Room Check-Out</title>
+<style>
+:root{
+  --primary:#20282D;
+  --accent:#F5F51F;
+  --orange:#FF6B1A;
+
+  --bg:#F5F5F2;
+  --card:#FFFFFF;
+  --text:#20282D;
+  --sub:#626A6F;
+  --border:#D9DDDF;
+
+  --good:#237A3B;
+  --good-bg:#E7F4EA;
+
+  --issue:#A66A00;
+  --issue-bg:#FFF3D6;
+
+  --bad:#B52A20;
+  --bad-bg:#FBE5E2;
+
+  box-sizing:border-box;
+}
+
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#171B1E;
+    --card:#22282C;
+    --text:#F2F3F3;
+    --sub:#B5BBBE;
+    --border:#343B40;
+
+    --good-bg:#14351F;
+    --issue-bg:#3D2E08;
+    --bad-bg:#3A1714;
+  }
+}
+
+:root[data-theme="dark"]{
+  --bg:#171B1E;
+  --card:#22282C;
+  --text:#F2F3F3;
+  --sub:#B5BBBE;
+  --border:#343B40;
+
+  --good-bg:#14351F;
+  --issue-bg:#3D2E08;
+  --bad-bg:#3A1714;
+}
+
+*{box-sizing:border-box;}
+
+html{
+  scroll-padding-top:env(safe-area-inset-top,0px);
+}
+
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--text);
+  font-family:Calibri,"Segoe UI",Arial,sans-serif;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+
+header{
+  position:relative;
+  overflow:hidden;
+  background:var(--primary);
+  color:#fff;
+  padding:22px 16px 20px;
+  padding-top:calc(22px + env(safe-area-inset-top,0px));
+  border-bottom:4px solid var(--orange);
+}
+
+header.brand-header{
+  position:relative !important;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+
+  width:100%;
+  min-height:120px;
+
+  background:#20282D !important;
+  color:#fff !important;
+
+  padding:22px 16px 20px;
+  padding-top:calc(22px + env(safe-area-inset-top,0px));
+
+  border-bottom:4px solid #FF6B1A;
+  overflow:hidden;
+}
+
+.header-text{
+  position:relative;
+  z-index:5;
+  flex:1;
+  min-width:0;
+  padding-right:165px;
+}
+
+.header-text h1{
+  margin:0;
+  color:#fff;
+  font-size:25px;
+  font-weight:800;
+  letter-spacing:.01em;
+}
+
+.header-text p{
+  margin:6px 0 0;
+  color:#fff;
+  font-size:13px;
+  line-height:1.4;
+  max-width:430px;
+}
+
+.brand-bubbles{
+  order:2;
+  display:flex;
+  align-items:center;
+  position:relative;
+  flex-shrink:0;
+  width:150px;
+  height:82px;
+}
+
+.brand-bubbles{
+  position:absolute;
+  right:20px;
+  top:18px;
+
+  width:150px;
+  height:82px;
+
+  z-index:10;
+}
+.sinai-bubble{
+  left:0;
+  top:0;
+  background:#F5F51F;
+  z-index:2;
+}
+
+.aim-bubble{
+  right:0;
+  top:6px;
+  background:#FF6B1A;
+  z-index:1;
+}
+
+.sinai-bubble strong{
+  font-size:18px;
+  letter-spacing:-.04em;
+  color:#E51E62;
+}
+
+.bubble-logo-mark{
+  font-size:13px;
+  line-height:10px;
+  color:#58646B;
+  margin-bottom:2px;
+}
+
+.aim-bubble strong{
+  font-size:22px;
+  letter-spacing:.02em;
+}
+
+.aim-bubble small{
+  font-size:9px;
+  font-weight:bold;
+  margin-bottom:1px;
+}
+  position:relative;
+  z-index:2;
+}
+
+header h1{
+  margin:0;
+  font-size:23px;
+  font-weight:800;
+  letter-spacing:.02em;
+}
+
+header p{
+  margin:5px 0 0;
+  font-size:13px;
+  color:#fff;
+  font-weight:bold;
+  letter-spacing:.04em;
+}
+
+main{max-width:640px; margin:0 auto; padding:16px 16px 48px;}
+.actions{display:flex; gap:10px; margin-bottom:20px;}
+button{font-family:inherit; cursor:pointer;}
+.btn-big{
+  flex:1; padding:18px 10px; font-size:16px; font-weight:bold; border:none;
+  border-radius:10px; color:#fff;
+}
+.btn-out{
+  background:var(--orange);
+  color:#fff;
+}
+
+.btn-in{
+  background:var(--accent);
+  color:var(--primary);
+}
+
+#adminLoginBtn{
+  color:#20282D !important;
+}
+
+h2.section{font-size:15px; letter-spacing:.03em; text-transform:uppercase; color:var(--sub); margin:24px 0 10px;}
+.badge{display:inline-block; background:var(--bad); color:#fff; border-radius:20px; padding:1px 8px; font-size:12px; margin-left:6px;}
+.card{
+  background:var(--card); border:1px solid var(--border); border-radius:10px;
+  padding:14px; margin-bottom:10px;
+}
+.card.attn{border-color:var(--bad); background:var(--bad-bg);}
+.card.overdue{border-color:var(--issue);}
+.row-top{display:flex; justify-content:space-between; align-items:flex-start; gap:8px;}
+.item-name{font-weight:bold; font-size:16px;}
+.meta{color:var(--sub); font-size:13px; margin-top:2px;}
+.pill{font-size:11px; font-weight:bold; padding:2px 8px; border-radius:20px; white-space:nowrap;}
+.pill-out{background:var(--accent); color:var(--primary);}
+.pill-issue{background:var(--issue-bg); color:var(--issue);}
+.pill-bad{background:var(--bad-bg); color:var(--bad);}
+.note{font-size:14px; margin-top:8px; font-style:italic; color:var(--text);}
+.tap-btn{
+  margin-top:10px; width:100%; padding:10px; border-radius:8px; border:1px solid var(--border);
+  background:transparent; color:var(--orange); font-weight:bold; font-size:14px;
+}
+.empty{color:var(--sub); font-size:14px; padding:8px 0;}
+
+.overlay{
+  position:fixed; inset:0; background:rgba(0,0,0,.5); display:none;
+  align-items:flex-end; justify-content:center; z-index:50;
+}
+.overlay.show{display:flex;}
+.sheet{
+  background:var(--card); width:100%; max-width:640px; border-radius:16px 16px 0 0;
+  padding:20px 18px calc(20px + env(safe-area-inset-bottom,0px)); max-height:88vh; overflow-y:auto;
+}
+.sheet h3{margin:0 0 14px;}
+label{display:block; font-size:13px; font-weight:bold; color:var(--sub); margin:14px 0 5px;}
+input[type=text], input[type=date], textarea, select{
+  width:100%; padding:11px; border:1px solid var(--border); border-radius:8px;
+  font-size:15px; background:var(--bg); color:var(--text); font-family:inherit;
+}
+textarea{min-height:70px; resize:vertical;}
+.cond-row{display:flex; gap:8px; margin-top:6px;}
+.cond-btn{
+  flex:1; padding:12px 4px; border-radius:8px; border:2px solid var(--border);
+  background:var(--bg); color:var(--text); font-size:13px; font-weight:bold; text-align:center;
+}
+.cond-btn.sel-good{border-color:var(--good); background:var(--good-bg); color:var(--good);}
+.cond-btn.sel-issue{border-color:var(--issue); background:var(--issue-bg); color:var(--issue);}
+.cond-btn.sel-bad{border-color:var(--bad); background:var(--bad-bg); color:var(--bad);}
+.sheet-actions{display:flex; gap:10px; margin-top:20px;}
+.btn-submit{flex:1; padding:14px; border:none; border-radius:8px; background:var(--primary); color:#fff; font-weight:bold; font-size:15px;}
+.btn-cancel{padding:14px 18px; border:1px solid var(--border); border-radius:8px; background:transparent; color:var(--sub); font-weight:bold;}
+.pick-item{width:100%; text-align:left; background:var(--card); border:1px solid var(--border); border-radius:10px; padding:12px; margin-bottom:8px; color:var(--text);}
+.pick-item .meta{margin-top:2px;}
+#toast{
+  position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:var(--primary);
+  color:#fff; padding:10px 18px; border-radius:20px; font-size:14px; display:none; z-index:60;
+}
+.warnbar{background:var(--issue-bg); color:var(--issue); padding:10px 16px; font-size:13px; text-align:center;}
+.combo{position:relative;}
+.combo-list{
+  position:absolute; left:0; right:0; top:calc(100% + 4px); background:var(--card);
+  border:1px solid var(--border); border-radius:8px; max-height:240px; overflow-y:auto;
+  display:none; z-index:5; box-shadow:0 6px 16px rgba(0,0,0,.15);
+}
+.combo-item{padding:11px 12px; font-size:14px; border-bottom:1px solid var(--border); cursor:pointer;}
+.combo-item:last-child{border-bottom:none;}
+.combo-item .sub{color:var(--sub); font-size:12px;}
+.combo-add{color:var(--primary); font-weight:bold;}
+.hint{font-size:12px; color:var(--sub); margin-top:4px;}
+.linkbtn{background:none; border:none; color:var(--accent); text-decoration:underline; font-size:13px; padding:0; margin-top:14px; display:inline-block;}
+.logrow{display:flex; justify-content:space-between; gap:10px; padding:10px 0; border-bottom:1px solid var(--border); font-size:13px;}
+.logrow:last-child{border-bottom:none;}
+.logrow .l-name{font-weight:bold;}
+.logrow .l-meta{color:var(--sub);}
+.export-btn{width:100%; padding:12px; border-radius:8px; border:1px solid var(--border); background:var(--primary); color:#fff; font-weight:bold; margin-bottom:14px;}
+
+header.brand-header{
+  background:#20282D !important;
+  color:#fff !important;
+}
+
+header.brand-header h1{
+  color:#fff !important;
+}
+
+header.brand-header p{
+  color:#fff !important;
+}
+</style>
+</head>
+<body>
+<header class="brand-header">
+
+  <div class="header-text">
+    <h1>Tool Room</h1>
+    <p>Log what goes out, log what comes back — with condition and date.</p>
+  </div>
+
+</header>
+<div id="warnbar" class="warnbar" style="display:none;">This page could not connect to Supabase. Check your Project URL and publishable key.</div>
+<main>
+  <div class="actions">
+    <button class="btn-big btn-out" onclick="openCheckout()">+ Check Out Item</button>
+    <button class="btn-big btn-in" onclick="openCheckInPicker()">✓ Check In Item</button>
+  </div>
+
+<div style="margin-top:10px; text-align:right;">
+  <button
+    id="adminLoginBtn"
+    class="linkbtn"
+    onclick="openAdminLogin()">
+    Admin Login
+  </button>
+
+  <span
+    id="adminStatus"
+    style="display:none; font-size:13px; margin-left:10px;">
+    Admin
+  </span>
+</div>
+  <h2 class="section">Needs Attention <span id="attnCount" class="badge" style="display:none;"></span></h2>
+  <div id="attnList"><div class="empty">Nothing flagged right now.</div></div>
+
+  <h2 class="section">Currently Out</h2>
+  <div id="outList"><div class="empty">Nothing checked out right now.</div></div>
+
+  <h2 class="section">Recently Checked In</h2>
+  <div id="recentList"><div class="empty">No history yet.</div></div>
+
+  <button class="linkbtn" onclick="openFullLog()" style="color:var(--primary);">View Full Log & Export &rarr;</button>
+<div id="adminLoginModal" class="modal" style="display:none;">
+
+  <div class="modal-card">
+
+    <h2>Admin Login</h2>
+
+    <div class="field">
+      <label for="adminEmail">Email</label>
+      <input
+        id="adminEmail"
+        type="email"
+        autocomplete="username"
+        placeholder="Admin email">
+    </div>
+
+    <div class="field">
+      <label for="adminPassword">Password</label>
+      <input
+        id="adminPassword"
+        type="password"
+        autocomplete="current-password"
+        placeholder="Password">
+    </div>
+
+    <div style="display:flex; gap:10px; margin-top:16px;">
+      <button
+        class="btn"
+        onclick="closeAdminLogin()">
+        Cancel
+      </button>
+
+      <button
+        class="btn btn-out"
+        onclick="adminLogin()">
+        Log In
+      </button>
+    </div>
+
+    <div
+      id="adminLoginError"
+      style="display:none; margin-top:12px; color:#b00020;">
+    </div>
+
+  </div>
+
+</div>
+
+</main>
+
+<!-- Check Out sheet -->
+<div class="overlay" id="overlayOut">
+  <div class="sheet">
+    <h3>Check Out an Item</h3>
+    <label>Item</label>
+    <div class="combo">
+      <input type="text" id="outItem" placeholder="Type a few letters..." autocomplete="off">
+      <div class="combo-list" id="outItemList"></div>
+    </div>
+    <div class="hint">Pick from the list. Not listed yet? Type it and tap "+ Add" to add it once.</div>
+    <label>Your Name</label>
+    <div class="combo">
+      <input type="text" id="outWorker" placeholder="Type a few letters..." autocomplete="off">
+      <div class="combo-list" id="outWorkerList"></div>
+    </div>
+    <div class="hint">First time checking something out? Type your name and tap "+ Add" once.</div>
+    <label>Date Out</label>
+    <input type="date" id="outDate">
+    <label>Notes (optional)</label>
+    <textarea id="outNotes" placeholder="Anything worth noting before it goes out"></textarea>
+    <div class="sheet-actions">
+      <button class="btn-cancel" onclick="closeAll()">Cancel</button>
+      <button class="btn-submit" onclick="submitCheckout()">Check It Out</button>
+    </div>
+  </div>
+</div>
+
+<!-- Check In picker sheet -->
+<div class="overlay" id="overlayPicker">
+  <div class="sheet">
+    <h3>Which Item Is Coming Back?</h3>
+    <div id="pickerList"></div>
+    <div class="sheet-actions">
+      <button class="btn-cancel" onclick="closeAll()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Check In sheet -->
+<div class="overlay" id="overlayIn">
+  <div class="sheet">
+
+    <h3 id="inTitle">Check In Item</h3>
+
+    <label>Condition</label>
+
+    <div class="cond-row">
+
+      <button
+        type="button"
+        class="cond-btn"
+        id="condGood"
+        onclick="pickCondition('good')">
+        ✅ Not Broken
+      </button>
+
+      <button
+        type="button"
+        class="cond-btn"
+        id="condIssue"
+        onclick="pickCondition('issue')">
+        ⚠️ Works, Has Issue
+      </button>
+
+      <button
+        type="button"
+        class="cond-btn"
+        id="condBad"
+        onclick="pickCondition('bad')">
+        ❌ Broken
+      </button>
+
+    </div>
+
+    <div id="noteWrap" style="display:none;">
+      <label>What's wrong? (e.g. "wire needs to be bent to make it work")</label>
+      <textarea id="inNote"></textarea>
+    </div>
+
+    <label>Date In</label>
+    <input type="date" id="inDate">
+
+    <div class="sheet-actions">
+      <button
+        type="button"
+        class="btn-cancel"
+        onclick="closeAll()">
+        Cancel
+      </button>
+
+      <button
+        type="button"
+        class="btn-submit"
+        onclick="submitCheckin()">
+        Check It In
+      </button>
+    </div>
+
+  </div>
+</div>
+<!-- Full Log sheet -->
+<div class="overlay" id="overlayLog">
+  <div class="sheet">
+    <h3>Full Log</h3>
+    <button class="export-btn" onclick="exportCSV()">&#8681; Export All Entries as CSV (opens in Excel)</button>
+    <div id="fullLogList"></div>
+    <div class="sheet-actions">
+      <button class="btn-cancel" onclick="closeAll()">Close</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL = "https://jghsynvbbnemorhyelhd.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_JAmQUU_E_kgxzMWETSceog_DQWDxPE4";
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+let currentUser = null;
+let isAdmin = false;
+let db = null;
+let checkouts = [];
+let activeCheckin = null;
+let selectedCondition = null;
+let catalog = { items: [], workers: [] };
+let outItemConfirmed = false;
+let outWorkerConfirmed = false;
+
+const CATALOG_SEED = [
+["Drills","Drills","R2 - 3rd shelf"],["Metal edge trims","Misc","R2 - 3rd shelf"],
+["Roof torch","Roofing Equipment","R2 - 3rd shelf"],["Mini veyor","Roofing Equipment","R2 - 3rd shelf"],
+["Allegro com-PAX-ial blower","Blowers","R2 - 3rd shelf"],["Shade tent","Site Equipment","R2 - 3rd shelf"],
+["Large yellow/silver laser level","Levels","R2 - 3rd shelf"],["Red telescope support jack","Rigging","R2 - 3rd shelf"],
+["Large rubber track with lip edge","Misc","R2 - 3rd shelf"],["Ryobi Retractable Cord Reel (GFCI)","Electrical","R2 - 3rd shelf"],
+["Silver transit level","Levels","R2 - 3rd shelf"],["Orange/silver telescoping tool w/ claws","Rigging","R2 - 3rd shelf"],
+["Ramset SA270","Fasteners","R2 - 2nd shelf"],["Rotary hammer","Demo Tools","R2 - 2nd shelf"],
+["Dewalt reciprocating saw DW304PK","Saws","R2 - 2nd shelf"],["Skil saw","Saws","R2 - 2nd shelf"],
+["Ryobi saw","Saws","R2 - 2nd shelf"],["Dewalt orbit sander D26451k","Misc","R2 - 2nd shelf"],
+["Craftsman leaf blower","Blowers","R2 - 2nd shelf"],["Toro powerjet leaf blower","Blowers","R2 - 2nd shelf"],
+["Toro ultra blower","Blowers","R2 - 2nd shelf"],["Echo chainsaw","Chainsaws","R2 - 2nd shelf"],
+["Husqvarna chainsaw 450 rancher","Chainsaws","R2 - 2nd shelf"],["Homelite chainsaw","Chainsaws","R2 - 2nd shelf"],
+["Construction electrical box","Electrical","R2 - 2nd shelf"],["Metal conductive tubes & scaffolding supply","Site Equipment","R2 - 2nd shelf"],
+["Misc box","Misc","R2 - 2nd shelf"],["Box of metal wires","Electrical","R2 - 2nd shelf"],
+["Metal chain hook","Rigging","R2 - 2nd shelf"],["Shoring post/support bracket","Site Equipment","R2 - 2nd shelf"],
+["Heat Stream HS-70T-KFA","Site Equipment","R2 - 2nd shelf"],["Bessey drill press vice","Misc","R2 - 2nd shelf"],
+["Poulan gas powered chainsaw","Chainsaws","R2 - 2nd shelf"],["Box of misc links & small hooks","Rigging","R2 - 2nd shelf"],
+["Ratchet cable puller","Rigging","R2 - 2nd shelf"],["Wrench handle with hook","Rigging","R2 - 2nd shelf"],
+["Hook with short rope","Rigging","R2 - 2nd shelf"],["Lock strap","Rigging","R2 - 2nd shelf"],
+["Simpson strong epoxy gun","Fasteners","R2 - 1st shelf"],["Bosch jack hammer","Demo Tools","R2 - 1st shelf"],
+["Bosch demolition hammer","Demo Tools","R2 - 1st shelf"],["Bosch rotary hammer","Demo Tools","R2 - 1st shelf"],
+["Edge saw","Saws","R2 - 1st shelf"],["Twintier rebar tying tool RN611T","Rebar Tools","R2 - 1st shelf"],
+["Twintier rebar tying tool RB441T","Rebar Tools","R2 - 1st shelf"],["Hilti drill DD130","Drills","R2 - 1st shelf"],
+["Milwaukee angle grinder","Demo Tools","R2 - 1st shelf"],["Oregon chainsaw","Chainsaws","R2 - 1st shelf"],
+["Makita 5402NA heavy duty saw","Saws","R2 - 1st shelf"],["Hilti DSH 700 saw","Concrete Saws","R2 - 1st shelf"],
+["STIHL TS 700 saw","Concrete Saws","R2 - 1st shelf"],["RIDGID compound miter saw","Saws","R2 - 1st shelf"],
+["Kobalt heavy duty saw","Saws","R2 - 1st shelf"],["Dewalt cutting saw","Saws","R2 - 1st shelf"],
+["Manual trolley QIT-2","Rigging","R2 - 1st shelf"],["Husqvarna concrete saw FS520","Concrete Saws","R2 - Floor level"],
+["Kohler pressure washer","Washers","R2 - Floor level"],["Yamaha portable generator","Generators","R2 - Floor level"],
+["RIDGID Subaru watt generator","Generators","R2 - Floor level"],["Dewalt gas pressure washer","Washers","R2 - Floor level"],
+["RIDGID 200 psi air compressor","Compressors","R2 - Floor level"],["RIDGID Tri-Stack 5 gal air compressor","Compressors","R2 - Floor level"],
+["RIDGID 150 psi air compressor","Compressors","R2 - Floor level"],["Hydraulic ram kit","Pumps","R2 - Floor level"],
+["Superwinch Tiger Shark 9500","Rigging","R2 - Floor level"],["Diamond rebar cutter","Concrete Saws","R2 - Floor level"],
+["Hilti cutting saw","Concrete Saws","R2 - Floor level"],["ICS hydraulic power unit","Concrete Saws","R2 - Floor level"],
+["ICS chainsaw","Concrete Saws","R2 - Floor level"],["Bucket with leaf blower","Blowers","R2 - Floor level"],
+["Black & Decker electric hedge trimmer","Blowers","R2 - Floor level"],["Wacker Neuson compactor","Concrete Saws","R2 - Floor level"],
+["2 step ladder","Ladders","R2 - Floor level"],["3 step ladder","Ladders","R2 - Floor level"],
+["Simpson CS14 14 gauge","Misc","White wall"],["Metal wire","Misc","White wall"],
+["Sibore drill 4 stroke","Drills","White wall"],["Simpson CS16 16 gauge","Misc","White wall"],
+["Pressure washer (orange)","Washers","White wall"],["Honda GXH50 mini engine","Pumps","White wall"],
+["Extension cord cable","Electrical","White wall"],["Pressure washer (gray)","Washers","White wall"],
+["Submersible pump","Pumps","White wall"],["Pressure washer (brass)","Washers","White wall"],
+["Pressure washer (black)","Washers","White wall"],["Concrete vibrator cable","Concrete Saws","White wall"],
+["Steel work platform","Ladders","White wall"],["Long level (blue)","Levels","Black wall"],
+["Long level (yellow)","Levels","Black wall"],["Long level (black)","Levels","Black wall"],
+["Medium level (yellow)","Levels","Black wall"],["Short level","Levels","Black wall"],
+["Kobalt amp drill","Drills","Black wall"],["RIDGID pipe wrench","Hand Tools","Black wall"],
+["Paslode framing nailer","Nail Guns","Black wall"],["Bostitch framing nailer","Nail Guns","Black wall"],
+["Senco nail gun","Nail Guns","Black wall"],["Makita corded rotary hammer","Demo Tools","Black wall"],
+["Bosch bulldog rotary hammer","Demo Tools","Black wall"],["Makita AVT saw","Saws","Black wall"],
+["Handheld saw","Saws","Black wall"],["Black & Decker impact wrench","Hand Tools","Black wall"],
+["Brink & Cotton C clamp","Hand Tools","Black wall"],["Pro series hacksaw frame","Saws","Black wall"],
+["Bow saw","Saws","Black wall"],["Coping saw","Saws","Black wall"],["Milwaukee Sawzall","Saws","Black wall"],
+["Klein tools steel fish tape","Electrical","Black wall"],["Greenlee steel fish tape","Electrical","Black wall"],
+["Stream line steel fish tape","Electrical","Black wall"],["12\" circular saw","Saws","Black wall"],
+["14\" metal cutting saw","Concrete Saws","Black wall"],["14\" rusted saw","Saws","Black wall"],
+["Husqvarna 14\" hard cutting saw","Concrete Saws","Black wall"],["Saw blade (laminate/plastic/non-ferrous)","Saw Blades","Black wall"],
+["10\" saw blade","Saw Blades","Black wall"],["Makita 14\" saw blade","Saw Blades","Black wall"]
+];
+
+function todayStr(){ return new Date().toISOString().slice(0,10); }
+function daysBetween(a,b){ return Math.floor((new Date(b) - new Date(a)) / 86400000); }
+function fmt(d){ if(!d) return ""; const dt=new Date(d+"T00:00:00"); return dt.toLocaleDateString(undefined,{month:"short",day:"numeric"}); }
+
+function toast(msg){
+  const t=document.getElementById('toast'); t.textContent=msg; t.style.display='block';
+  setTimeout(()=>t.style.display='none', 2200);
+}
+
+function closeAll(){
+  document.getElementById('overlayOut').classList.remove('show');
+  document.getElementById('overlayPicker').classList.remove('show');
+  document.getElementById('overlayIn').classList.remove('show');
+  document.getElementById('overlayLog').classList.remove('show');
+}
+
+function catalogLocationOf(name){
+  const hit = catalog.items.find(i=>i.name.toLowerCase()===String(name).toLowerCase());
+  return hit ? hit.location : '';
+}
+function catalogCategoryOf(name){
+  const hit = catalog.items.find(i=>i.name.toLowerCase()===String(name).toLowerCase());
+  return hit ? hit.category : '';
+}
+
+function wireCombo(inputId, listId, getOptionNames, getSubLabel, onConfirm, addKind){
+  const input = document.getElementById(inputId);
+  const list = document.getElementById(listId);
+
+  function renderList(){
+    const q = input.value.trim().toLowerCase();
+    const names = getOptionNames();
+
+    let matches = q
+      ? names.filter(n => n.toLowerCase().includes(q))
+      : names.slice();
+
+    matches.sort((a,b)=>{
+      const ai = a.toLowerCase().startsWith(q) ? 0 : 1;
+      const bi = b.toLowerCase().startsWith(q) ? 0 : 1;
+      return ai - bi || a.localeCompare(b);
+    });
+
+    matches = matches.slice(0,7);
+    list.innerHTML = '';
+
+    matches.forEach(m=>{
+      const d = document.createElement('div');
+      d.className = 'combo-item';
+
+      const sub = getSubLabel ? getSubLabel(m) : '';
+
+      const text = document.createElement('div');
+      text.innerHTML =
+        escapeHtml(m) +
+        (sub ? `<div class="sub">${escapeHtml(sub)}</div>` : '');
+
+      d.style.display = 'flex';
+      d.style.alignItems = 'center';
+      d.style.justifyContent = 'space-between';
+      d.style.gap = '8px';
+
+      d.appendChild(text);
+
+      // Admin-only delete button for people.
+      if(addKind === 'person' && isAdmin){
+        const worker = catalog.workers.find(w => w.name === m);
+
+        if(worker){
+          const deleteBtn = document.createElement('button');
+          deleteBtn.type = 'button';
+          deleteBtn.textContent = 'Delete';
+          deleteBtn.style.flexShrink = '0';
+          deleteBtn.style.fontSize = '12px';
+          deleteBtn.style.padding = '4px 8px';
+          deleteBtn.style.borderRadius = '6px';
+          deleteBtn.style.border = '1px solid #ccc';
+          deleteBtn.style.background = '#fff';
+          deleteBtn.style.cursor = 'pointer';
+
+          deleteBtn.onmousedown = async (e)=>{
+            e.preventDefault();
+            e.stopPropagation();
+
+            await deleteWorker(worker.id, worker.name);
+
+            renderList();
+          };
+
+          d.appendChild(deleteBtn);
+        }
+      }
+
+      d.onmousedown = (e)=>{
+        if(e.target.tagName === 'BUTTON') return;
+
+        e.preventDefault();
+        input.value = m;
+        list.style.display = 'none';
+        onConfirm(true);
+      };
+
+      list.appendChild(d);
+    });
+
+    const exact = names.some(n => n.toLowerCase() === q);
+
+    if(addKind && q && !exact){
+      const d = document.createElement('div');
+      d.className = 'combo-item combo-add';
+
+      d.textContent =
+        '+ Add "' +
+        input.value.trim() +
+        '" as a new ' +
+        addKind;
+
+      d.onmousedown = async (e)=>{
+        e.preventDefault();
+
+        const val = input.value.trim();
+
+        await addToCatalog(
+          addKind === 'item' ? 'items' : 'workers',
+          val,
+          addKind
+        );
+
+        input.value = val;
+        list.style.display = 'none';
+        onConfirm(true);
+      };
+
+      list.appendChild(d);
+    }
+
+    list.style.display =
+      (matches.length || (addKind && q && !exact))
+        ? 'block'
+        : 'none';
+  }
+
+  input.addEventListener('focus', renderList);
+
+  input.addEventListener('input', ()=>{
+    onConfirm(false);
+    renderList();
+  });
+
+  input.addEventListener('blur', ()=>{
+    setTimeout(()=>{
+      list.style.display = 'none';
+    }, 150);
+  });
+}
+async function addToCatalog(field, value, kind){
+  if(!value) return;
+
+  try{
+    if(field === 'workers'){
+      const { error } = await supabaseClient
+        .from('workers')
+        .insert({ name:value });
+
+      if(error && error.code !== '23505') throw error;
+
+      await loadCatalog();
+
+      // Clear the worker field after adding.
+      const workerInput = document.getElementById('outWorker');
+      if(workerInput){
+        workerInput.value = value;
+      }
+
+      outWorkerConfirmed = true;
+
+      toast("Person added.");
+
+    } else {
+      const { error } = await supabaseClient
+        .from('tools')
+        .insert({
+          name:value,
+          category:'',
+          location:''
+        });
+
+      if(error && error.code !== '23505') throw error;
+
+      await loadCatalog();
+
+      toast("Item added.");
+    }
+
+  }catch(e){
+    console.error("ADD TO CATALOG ERROR:", e);
+    toast("Couldn't add — try again.");
+  }
+}
+
+wireCombo('outItem','outItemList', ()=>catalog.items.map(i=>i.name),
+  (name)=>{ const loc=catalogLocationOf(name); const cat=catalogCategoryOf(name); return [cat,loc].filter(Boolean).join(' \u2014 '); },
+  (ok)=>{ outItemConfirmed = ok; }, 'item');
+
+wireCombo('outWorker','outWorkerList', ()=>catalog.workers.map(w=>w.name), null,
+  (ok)=>{ outWorkerConfirmed = ok; }, 'person');
+
+function openCheckout(){
+  document.getElementById('outItem').value='';
+  document.getElementById('outWorker').value='';
+  document.getElementById('outDate').value=todayStr();
+  document.getElementById('outNotes').value='';
+  outItemConfirmed=false; outWorkerConfirmed=false;
+  document.getElementById('overlayOut').classList.add('show');
+}
+
+async function deleteWorker(workerId, workerName){
+  // App-level admin check
+  if(!isAdmin){
+    toast("Only administrators can remove people.");
+    return;
+  }
+
+  const confirmed = confirm(
+    "Remove this person?\n\n" +
+    workerName +
+    "\n\n" +
+    "Their existing checkout history will be kept."
+  );
+
+  if(!confirmed) return;
+
+  try{
+    const { error } = await supabaseClient
+      .from('workers')
+      .delete()
+      .eq('id', workerId);
+
+    if(error){
+      console.error("DELETE WORKER ERROR:", error);
+      toast("Couldn't remove this person.");
+      return;
+    }
+
+    // Reload the worker list immediately.
+    await loadCatalog();
+
+    // Clear the current name if it was the deleted person.
+    const workerInput = document.getElementById('outWorker');
+
+    if(workerInput && workerInput.value === workerName){
+      workerInput.value = '';
+      outWorkerConfirmed = false;
+    }
+
+    toast("Person removed.");
+  }catch(e){
+    console.error("DELETE WORKER ERROR:", e);
+    toast("Couldn't remove this person.");
+  }
+}
+
+async function submitCheckout(){
+
+  const itemName = document.getElementById('outItem').value.trim();
+  const worker = document.getElementById('outWorker').value.trim();
+  const dateOut = document.getElementById('outDate').value || todayStr();
+  const notesOut = document.getElementById('outNotes').value.trim();
+
+  if(!itemName || !outItemConfirmed){
+    toast("Pick an item from the list.");
+    return;
+  }
+
+  if(!worker || !outWorkerConfirmed){
+    toast("Pick your name from the list.");
+    return;
+  }
+
+  try {
+
+    // Find the selected tool
+    const tool = catalog.items.find(
+      t => t.name.toLowerCase() === itemName.toLowerCase()
+    );
+
+    // Find the selected worker
+    const person = catalog.workers.find(
+      w => w.name.toLowerCase() === worker.toLowerCase()
+    );
+
+    if(!tool){
+      toast("Tool not found.");
+      console.error("Tool not found:", itemName);
+      return;
+    }
+
+    if(!person){
+      toast("Worker not found.");
+      console.error("Worker not found:", worker);
+      return;
+    }
+
+    console.log("Saving checkout:", {
+      tool_id: tool.id,
+      worker_id: person.id,
+      worker_name: worker,
+      date_out: dateOut
+    });
+
+    // Save checkout to Supabase
+    const { data, error } = await supabaseClient
+      .from('checkouts')
+      .insert({
+        tool_id: tool.id,
+        worker_id: person.id,
+        worker_name: worker,
+        date_out: dateOut,
+        date_in: null,
+        status: 'out',
+        condition: null,
+        condition_note: '',
+        needs_attention: false,
+        notes_out: notesOut
+      })
+      .select()
+      .single();
+
+    if(error){
+      console.error("CHECKOUT SUPABASE ERROR:", error);
+      toast("Couldn't save checkout.");
+      return;
+    }
+
+    console.log("Checkout saved:", data);
+
+    // Immediately reload the checkout records
+    await loadCheckouts();
+
+    // Clear the checkout form
+    document.getElementById('outItem').value = '';
+    document.getElementById('outWorker').value = '';
+    document.getElementById('outNotes').value = '';
+
+    outItemConfirmed = false;
+    outWorkerConfirmed = false;
+
+    // Close the checkout window
+    closeAll();
+
+    toast("Checked out: " + itemName);
+
+  } catch(error) {
+
+    console.error("CHECKOUT ERROR:", error);
+    toast("Couldn't save checkout.");
+
+  }
+}
+
+function pickCondition(condition){
+
+  selectedCondition = condition;
+
+  // Remove all condition highlight styles.
+  document.querySelectorAll('.cond-btn').forEach(btn => {
+    btn.classList.remove('sel-good', 'sel-issue', 'sel-bad');
+  });
+
+  // Highlight the selected condition.
+  if(condition === 'good'){
+    document.getElementById('condGood').classList.add('sel-good');
+  }
+
+  if(condition === 'issue'){
+    document.getElementById('condIssue').classList.add('sel-issue');
+  }
+
+  if(condition === 'bad'){
+    document.getElementById('condBad').classList.add('sel-bad');
+  }
+
+  // Show the note box when the tool has a problem.
+  const noteWrap = document.getElementById('noteWrap');
+
+  if(noteWrap){
+    noteWrap.style.display =
+      condition === 'good' ? 'none' : 'block';
+  }
+}
+function openCheckInPicker(){
+
+  const outItems = checkouts.filter(c => c.status === 'out');
+
+  if(!outItems.length){
+    toast("Nothing is currently checked out.");
+    return;
+  }
+
+  // Remove an old picker if one exists.
+  const oldPicker = document.getElementById('checkinPicker');
+  if(oldPicker){
+    oldPicker.remove();
+  }
+
+  // Create the picker window.
+  const picker = document.createElement('div');
+  picker.id = 'checkinPicker';
+  picker.className = 'overlay';
+  picker.style.display = 'flex';
+
+  const sheet = document.createElement('div');
+  sheet.className = 'sheet';
+
+  sheet.innerHTML = `
+    <h3>Check In an Item</h3>
+    <div id="checkinPickerList"></div>
+    <div class="sheet-actions">
+      <button class="btn-cancel" type="button">Cancel</button>
+    </div>
+  `;
+
+  picker.appendChild(sheet);
+  document.body.appendChild(picker);
+
+  const list = sheet.querySelector('#checkinPickerList');
+  const cancelBtn = sheet.querySelector('.btn-cancel');
+
+  cancelBtn.onclick = () => {
+    picker.remove();
+  };
+
+  outItems.forEach(c => {
+
+    const row = document.createElement('div');
+
+    row.className = 'combo-item';
+    row.style.cursor = 'pointer';
+    row.style.padding = '12px';
+    row.style.marginBottom = '8px';
+
+    row.innerHTML = `
+      <strong>${escapeHtml(c.itemName)}</strong>
+      <div class="sub">
+        Out to ${escapeHtml(c.worker || 'Unknown')}
+        — since ${fmt(c.dateOut)}
+      </div>
+    `;
+
+    row.onclick = () => {
+
+      activeCheckin = c;
+      selectedCondition = null;
+
+      picker.remove();
+
+      const title = document.getElementById('inTitle');
+
+      if(title){
+        title.textContent = 'Check In: ' + c.itemName;
+      }
+
+      const note = document.getElementById('inNote');
+
+      if(note){
+        note.value = '';
+      }
+
+      const dateInput = document.getElementById('inDate');
+
+      if(dateInput){
+        dateInput.value = todayStr();
+      }
+
+      const noteWrap = document.getElementById('noteWrap');
+
+      if(noteWrap){
+        noteWrap.style.display = 'none';
+      }
+
+      document.querySelectorAll('.cond-btn').forEach(btn => {
+        btn.classList.remove('selected');
+      });
+
+      const overlay = document.getElementById('overlayIn');
+
+      if(overlay){
+        overlay.classList.add('show');
+      } else {
+        console.error("Check-in overlay not found.");
+      }
+    };
+
+    list.appendChild(row);
+  });
+}
+
+async function submitCheckin(){
+
+  if(!activeCheckin){
+    toast("No checkout selected.");
+    return;
+  }
+
+  if(!selectedCondition){
+    toast("Pick a condition first.");
+    return;
+  }
+
+  const note = document.getElementById('inNote').value.trim();
+
+  if(selectedCondition !== 'good' && !note){
+    toast("Add a quick note on what's wrong.");
+    return;
+  }
+
+  const dateIn =
+    document.getElementById('inDate').value || todayStr();
+
+  try {
+
+    console.log("Checking in:", activeCheckin);
+
+    const { data, error } = await supabaseClient
+      .from('checkouts')
+      .update({
+        status: 'in',
+        date_in: dateIn,
+        condition: selectedCondition,
+        condition_note: note,
+        needs_attention: selectedCondition !== 'good'
+      })
+      .eq('id', activeCheckin.id)
+      .select()
+      .single();
+
+    if(error){
+      console.error("CHECK-IN ERROR:", error);
+      toast("Couldn't save check-in.");
+      return;
+    }
+
+    console.log("Check-in saved:", data);
+
+    // Reload the checkout records immediately
+    await loadCheckouts();
+
+    // Clear the active checkout
+    activeCheckin = null;
+    selectedCondition = null;
+
+    // Close the check-in window
+    closeAll();
+
+    toast("Checked in successfully.");
+
+  } catch(error) {
+
+    console.error("CHECK-IN ERROR:", error);
+    toast("Couldn't save check-in.");
+
+  }
+}
+
+async function markFixed(id, name){
+
+  try {
+
+    console.log("Marking issue fixed:", id);
+
+    const { data, error } = await supabaseClient
+      .from('checkouts')
+      .update({
+        needs_attention: false,
+        resolved_at: todayStr()
+      })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if(error){
+      console.error("MARK FIXED ERROR:", error);
+      toast("Couldn't mark item fixed.");
+      return;
+    }
+
+    console.log("Issue marked fixed:", data);
+
+    // Immediately reload EVERYTHING
+    await loadCheckouts();
+
+    toast("Marked fixed: " + name);
+
+  } catch(error) {
+
+    console.error("MARK FIXED ERROR:", error);
+    toast("Couldn't mark item fixed.");
+
+  }
+}
+async function cancelCheckout(id, name){
+
+  const confirmed = confirm(
+    "Cancel this checkout?\n\n" +
+    name +
+    "\n\n" +
+    "This will mark the checkout as cancelled and make the item available again."
+  );
+
+  if(!confirmed){
+    return;
+  }
+
+  try {
+
+    console.log("Cancelling checkout:", id);
+
+    const { data, error } = await supabaseClient
+      .from('checkouts')
+      .update({
+        status: 'cancelled',
+        date_in: todayStr(),
+        condition: null,
+        condition_note: 'Checkout cancelled by user',
+        needs_attention: false
+      })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if(error){
+      console.error("CANCEL CHECKOUT ERROR:", error);
+      toast("Couldn't cancel checkout.");
+      return;
+    }
+
+    console.log("Checkout cancelled:", data);
+
+    // Immediately refresh the app
+    await loadCheckouts();
+
+    toast("Checkout cancelled: " + name);
+
+  } catch(error) {
+
+    console.error("CANCEL CHECKOUT ERROR:", error);
+    toast("Couldn't cancel checkout.");
+
+  }
+}async function cancelCheckout(id, name){
+
+  const confirmed = confirm(
+    "Cancel this checkout?\n\n" +
+    name +
+    "\n\n" +
+    "This will mark the checkout as cancelled and make the item available again."
+  );
+
+  if(!confirmed){
+    return;
+  }
+
+  try {
+
+    console.log("Cancelling checkout:", id);
+
+    const { data, error } = await supabaseClient
+      .from('checkouts')
+      .update({
+        status: 'cancelled',
+        date_in: todayStr(),
+        condition: null,
+        condition_note: 'Checkout cancelled by user',
+        needs_attention: false
+      })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if(error){
+      console.error("CANCEL CHECKOUT ERROR:", error);
+      toast("Couldn't cancel checkout.");
+      return;
+    }
+
+    console.log("Checkout cancelled:", data);
+
+    // Immediately refresh the app
+    await loadCheckouts();
+
+    toast("Checkout cancelled: " + name);
+
+  } catch(error) {
+
+    console.error("CANCEL CHECKOUT ERROR:", error);
+    toast("Couldn't cancel checkout.");
+
+  }
+}
+function escapeHtml(s){
+  return (s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+
+function render(){
+  const attn = checkouts.filter(c=>c.needsAttention);
+  const attnEl = document.getElementById('attnList');
+  const attnCount = document.getElementById('attnCount');
+  if(attn.length){
+    attnCount.style.display='inline-block'; attnCount.textContent = attn.length;
+    attnEl.innerHTML='';
+    attn.forEach(c=>{
+      const div=document.createElement('div');
+      div.className='card attn';
+      const pillClass = c.condition==='bad' ? 'pill-bad' : 'pill-issue';
+      const pillText = c.condition==='bad' ? 'Broken' : 'Has Issue';
+      div.innerHTML = `
+        <div class="row-top">
+          <div><div class="item-name">${escapeHtml(c.itemName)}</div>
+          <div class="meta">Returned by ${escapeHtml(c.worker)} \u2014 ${fmt(c.dateIn)}</div></div>
+          <span class="pill ${pillClass}">${pillText}</span>
+        </div>
+        <div class="note">${escapeHtml(c.conditionNote)}</div>
+      `;
+      const btn=document.createElement('button');
+      btn.className='tap-btn'; btn.textContent='Mark Fixed';
+      btn.onclick=()=>markFixed(c.id, c.itemName);
+      div.appendChild(btn);
+      attnEl.appendChild(div);
+    });
+  } else {
+    attnCount.style.display='none';
+    attnEl.innerHTML='<div class="empty">Nothing flagged right now.</div>';
+  }
+
+ const out = checkouts
+  .filter(c => c.status === 'out')
+  .sort((a,b) => a.dateOut < b.dateOut ? -1 : 1);
+
+const outEl = document.getElementById('outList');
+
+if(out.length){
+
+  outEl.innerHTML = '';
+
+  out.forEach(c => {
+
+    const days = daysBetween(c.dateOut, todayStr());
+    const overdue = days >= 3;
+
+    const div = document.createElement('div');
+
+    div.className = 'card' + (overdue ? ' overdue' : '');
+
+    div.innerHTML = `
+      <div class="row-top">
+
+        <div>
+          <div class="item-name">
+            ${escapeHtml(c.itemName)}
+          </div>
+
+          <div class="meta">
+            Out to ${escapeHtml(c.worker)}
+            — since ${fmt(c.dateOut)}
+            ${overdue ? ' — ' + days + ' days' : ''}
+          </div>
+        </div>
+
+        <span class="pill pill-out">OUT</span>
+
+      </div>
+    `;
+
+  // Add Cancel Checkout button for the first 5 minutes only.
+const checkoutTime = c.createdAt
+  ? new Date(c.createdAt).getTime()
+  : 0;
+
+const fiveMinutes = 5 * 60 * 1000;
+
+const canCancel =
+  checkoutTime &&
+  (Date.now() - checkoutTime) < fiveMinutes;
+
+if(canCancel){
+
+  const cancelBtn = document.createElement('button');
+
+  cancelBtn.className = 'tap-btn';
+  cancelBtn.textContent = 'Wrong Item? Cancel';
+
+  cancelBtn.onclick = () => {
+    cancelCheckout(c.id, c.itemName);
+  };
+
+  div.appendChild(cancelBtn);
+}
+// Automatically remove the cancel button after 5 minutes.
+if(canCancel){
+
+  const remaining = fiveMinutes - (Date.now() - checkoutTime);
+
+  setTimeout(() => {
+    renderCurrentCheckouts();
+  }, remaining);
+}
+    outEl.appendChild(div);
+
+  });
+
+} else {
+
+  outEl.innerHTML =
+    '<div class="empty">Nothing checked out right now.</div>';
+
+}
+
+  const recent = checkouts.filter(c=>c.status==='in').sort((a,b)=> (b.dateIn||'') < (a.dateIn||'') ? -1 : 1).slice(0,8);
+  const recEl = document.getElementById('recentList');
+  if(recent.length){
+    recEl.innerHTML='';
+    recent.forEach(c=>{
+      const div=document.createElement('div');
+      div.className='card';
+      const pillClass = c.condition==='good' ? 'pill-out' : (c.condition==='bad' ? 'pill-bad' : 'pill-issue');
+      const pillText = c.condition==='good' ? 'Good' : (c.condition==='bad' ? 'Broken' : 'Issue');
+      div.innerHTML = `
+        <div class="row-top">
+          <div><div class="item-name">${escapeHtml(c.itemName)}</div>
+          <div class="meta">${escapeHtml(c.worker)} \u2014 out ${fmt(c.dateOut)}, in ${fmt(c.dateIn)}</div></div>
+          <span class="pill ${pillClass}">${pillText}</span>
+        </div>
+        ${c.conditionNote ? `<div class="note">${escapeHtml(c.conditionNote)}</div>` : ''}
+      `;
+      recEl.appendChild(div);
+    });
+  } else {
+    recEl.innerHTML='<div class="empty">No history yet.</div>';
+  }
+}
+
+async function loadCatalog(){
+  const [toolsResult, workersResult] = await Promise.all([
+    supabaseClient.from('tools').select('id,name,category,location').order('name'),
+    supabaseClient.from('workers').select('id,name').order('name')
+  ]);
+  if(toolsResult.error) throw toolsResult.error;
+  if(workersResult.error) throw workersResult.error;
+
+  catalog = {
+    items: toolsResult.data || [],
+    workers: workersResult.data || []
+  };
+}
+
+async function loadCheckouts(){
+
+  console.log("Refreshing checkout data...");
+
+  const { data, error } = await supabaseClient
+    .from('checkouts')
+    .select(`
+      id,
+tool_id,
+worker_id,
+worker_name,
+date_out,
+      date_in,
+      status,
+      condition,
+      condition_note,
+      needs_attention,
+      notes_out,
+      resolved_at,
+      created_at,
+      tools (
+        id,
+        name,
+        category,
+        location
+      ),
+      workers (
+        id,
+        name
+      )
+    `)
+    .order('date_out', { ascending:false })
+    .limit(500);
+
+  if(error){
+    console.error("LOAD CHECKOUTS ERROR:", error);
+    toast("Couldn't refresh checkout data.");
+    return;
+  }
+
+  checkouts = (data || []).map(c => ({
+    id: c.id,
+    itemName: c.tools ? c.tools.name : '',
+worker: c.worker_name || (c.workers ? c.workers.name : ''),    dateOut: c.date_out,
+    dateIn: c.date_in,
+    status: c.status,
+    condition: c.condition,
+    conditionNote: c.condition_note || '',
+    needsAttention: !!c.needs_attention,
+    notesOut: c.notes_out || '',
+    resolvedAt: c.resolved_at,
+createdAt: c.created_at,
+    toolCategory: c.tools ? c.tools.category : ''
+  }));
+
+  console.log("Checkout data refreshed:", checkouts);
+
+  // Redraw EVERYTHING that depends on checkout data
+  render();
+
+  // Refresh any current UI lists
+  if(typeof renderCurrentCheckouts === 'function'){
+    renderCurrentCheckouts();
+  }
+
+  if(typeof renderFullLog === 'function'){
+    renderFullLog();
+  }
+}
+
+function openFullLog(){
+  const el = document.getElementById('fullLogList');
+
+  if(!el){
+    console.error("Full log list not found.");
+    return;
+  }
+
+  const all = checkouts.slice().sort((a,b) =>
+    (b.dateOut || '') < (a.dateOut || '') ? -1 : 1
+  );
+
+  if(!all.length){
+    el.innerHTML = '<div class="empty">No entries yet.</div>';
+  } else {
+    el.innerHTML = all.map(c => {
+
+      const statusTxt =
+        c.status === 'out'
+          ? 'OUT'
+          : (
+              'IN — ' +
+              (
+                c.condition === 'good'
+                  ? 'Good'
+                  : c.condition === 'bad'
+                    ? 'Broken'
+                    : c.condition === 'issue'
+                      ? 'Issue'
+                      : '—'
+              )
+            );
+
+      return `
+        <div class="logrow">
+          <div>
+            <div class="l-name">${escapeHtml(c.itemName)}</div>
+            <div class="l-meta">
+              ${escapeHtml(c.worker)}
+              — out ${fmt(c.dateOut)}
+              ${c.dateIn ? ', in ' + fmt(c.dateIn) : ''}
+              ${c.conditionNote ? ' — ' + escapeHtml(c.conditionNote) : ''}
+            </div>
+          </div>
+
+          <div class="l-meta">${statusTxt}</div>
+        </div>
+      `;
+
+    }).join('');
+  }
+
+  document.getElementById('overlayLog').classList.add('show');
+}
+
+async function checkAdmin(){
+  const { data: { user }, error: userError } =
+    await supabaseClient.auth.getUser();
+
+  console.log("CHECK ADMIN - USER:", user);
+  console.log("CHECK ADMIN - USER ERROR:", userError);
+
+  if(userError || !user){
+    currentUser = null;
+    isAdmin = false;
+    console.log("CHECK ADMIN RESULT: NO LOGGED-IN USER");
+    return false;
+  }
+
+  currentUser = user;
+
+  const { data, error } =
+    await supabaseClient
+      .from('admins')
+      .select('user_id')
+      .eq('user_id', user.id);
+
+  console.log("CHECK ADMIN - QUERY DATA:", data);
+  console.log("CHECK ADMIN - QUERY ERROR:", error);
+
+  if(error){
+    isAdmin = false;
+    console.log("CHECK ADMIN RESULT: DATABASE ERROR");
+    return false;
+  }
+
+  isAdmin = Array.isArray(data) && data.length > 0;
+
+  console.log("CHECK ADMIN RESULT:", isAdmin);
+
+   return isAdmin;
+}
+
+
+function openAdminLogin(){
+  const modal = document.getElementById('adminLoginModal');
+
+  if(!modal){
+    console.error("Admin login modal not found.");
+    return;
+  }
+
+  modal.style.display = 'flex';
+
+  const email = document.getElementById('adminEmail');
+  const password = document.getElementById('adminPassword');
+  const error = document.getElementById('adminLoginError');
+
+  if(email) email.value = '';
+  if(password) password.value = '';
+
+  if(error){
+    error.style.display = 'none';
+    error.textContent = '';
+  }
+
+  setTimeout(() => {
+    if(email) email.focus();
+  }, 100);
+}
+
+
+function closeAdminLogin(){
+  const modal = document.getElementById('adminLoginModal');
+
+  if(modal){
+    modal.style.display = 'none';
+  }
+}
+
+
+async function adminLogin(){
+
+  const email =
+    document.getElementById('adminEmail').value.trim();
+
+  const password =
+    document.getElementById('adminPassword').value;
+
+  const error =
+    document.getElementById('adminLoginError');
+
+  error.style.display = 'none';
+  error.textContent = '';
+
+  if(!email || !password){
+
+    error.textContent =
+      'Enter your admin email and password.';
+
+    error.style.display = 'block';
+
+    return;
+  }
+
+  try {
+
+    const { data, error: loginError } =
+      await supabaseClient.auth.signInWithPassword({
+        email: email,
+        password: password
+      });
+
+    if(loginError){
+
+      console.error("ADMIN LOGIN ERROR:", loginError);
+
+      error.textContent =
+        'Incorrect email or password.';
+
+      error.style.display = 'block';
+
+      return;
+    }
+
+    currentUser = data.user;
+
+    // Check whether this authenticated user
+    // is actually in the admins table.
+    const admin = await checkAdmin();
+
+    if(!admin){
+
+      await supabaseClient.auth.signOut();
+
+      error.textContent =
+        'This account is not an administrator.';
+
+      error.style.display = 'block';
+
+      return;
+    }
+
+    // Successful admin login
+    closeAdminLogin();
+
+    const loginButton =
+      document.getElementById('adminLoginBtn');
+
+    const adminStatus =
+      document.getElementById('adminStatus');
+
+    if(loginButton){
+      loginButton.textContent = 'Admin Logout';
+      loginButton.onclick = adminLogout;
+    }
+
+    if(adminStatus){
+      adminStatus.style.display = 'inline';
+    }
+
+    toast('Admin login successful.');
+
+    console.log('Admin logged in.');
+
+  } catch(e){
+
+    console.error("ADMIN LOGIN ERROR:", e);
+
+    error.textContent =
+      'Something went wrong while logging in.';
+
+    error.style.display = 'block';
+
+  }
+}
+
+
+async function adminLogout(){
+
+  await supabaseClient.auth.signOut();
+
+  currentUser = null;
+  isAdmin = false;
+
+  const loginButton =
+    document.getElementById('adminLoginBtn');
+
+  const adminStatus =
+    document.getElementById('adminStatus');
+
+  if(loginButton){
+
+    loginButton.textContent = 'Admin Login';
+    loginButton.onclick = openAdminLogin;
+
+  }
+
+  if(adminStatus){
+    adminStatus.style.display = 'none';
+  }
+
+  toast('Admin logged out.');
+
+  console.log('Admin logged out.');
+
+}
+async function init(){
+  try{
+    await loadCatalog();
+    await loadCheckouts();
+
+    supabaseClient
+      .channel('tool-room-changes')
+      .on('postgres_changes', {event:'*', schema:'public', table:'tools'},
+          async()=>{ try{await loadCatalog(); render();}catch(e){console.error(e);} })
+      .on('postgres_changes', {event:'*', schema:'public', table:'workers'},
+          async()=>{ try{await loadCatalog(); render();}catch(e){console.error(e);} })
+      .on('postgres_changes', {event:'*', schema:'public', table:'checkouts'},
+          async()=>{ try{await loadCheckouts();}catch(e){console.error(e);} })
+      .subscribe();
+  }catch(e){
+    console.error(e);
+    document.getElementById('warnbar').style.display='block';
+    document.getElementById('warnbar').textContent =
+      "Couldn't connect to Supabase. Check your Project URL and publishable key.";
+  }
+}
+init();
+</script>
+</body>
+</html>

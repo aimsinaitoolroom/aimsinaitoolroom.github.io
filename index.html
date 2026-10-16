@@ -1704,8 +1704,17 @@ async function adminLogin(){
 
       return;
     }
+    
+ // TEMPORARY TEST: verify the Edge Function
+    const { data: securityTest, error: securityError } =
+      await supabaseClient.functions.invoke(
+        'tool-room-security'
+      );
 
+    console.log('EDGE FUNCTION TEST RESULT:', securityTest);
+    console.log('EDGE FUNCTION TEST ERROR:', securityError);
     // Successful admin login
+    
     closeAdminLogin();
 
     const loginButton =

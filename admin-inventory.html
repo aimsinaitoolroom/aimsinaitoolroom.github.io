@@ -195,7 +195,7 @@
           </thead>
           <tbody>
             <tr>
-              <td colspan="4">Inventory connection not enabled yet.</td>
+              <td colspan="4"><p id="inventoryStatus">Checking inventory connection...</p></td>
             </tr>
           </tbody>
         </table>
@@ -213,6 +213,67 @@
     SUPABASE_PUBLISHABLE_KEY
   );
 </script>
+  
+<script>
+async function loadInventory() {
+  const status = document.getElementById('inventoryStatus');
+
+  if (status) status.textContent = 'Checking administrator access...';
+
+  try {
+    const { data: { user }, error: userError } =
+      await supabaseClient.auth.getUser();
+
+    if (userError || !user) {
+      if (status) {
+        status.textContent =
+          'Please sign in through the main Tool Room website first.';
+      }
+      return;
+    }
+
+    const { data: admin, error: adminError } =
+      await supabaseClient
+        .from('admins')
+        .select('user_id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+    if (adminError || !admin) {
+      if (status) {
+        status.textContent =
+          'Administrator access could not be verified. Please sign in with an approved admin account.';
+      }
+      return;
+    }
+
+    if (status) status.textContent = 'Loading tools...';
+
+    const { data: tools, error: toolsError } =
+      await supabaseClient
+        .from('tools')
+        .select('*')
+        .order('name');
+
+    if (toolsError) throw toolsError;
+
+    console.log('INVENTORY LOADED:', tools);
+
+    if (status) {
+      status.textContent =
+        'Connected successfully. Loaded ' + tools.length + ' tool records. Open the browser console to inspect them.';
+    }
+  } catch (error) {
+    console.error('Inventory loading error:', error);
+    if (status) {
+      status.textContent =
+        'Could not load inventory. Check the browser console for details.';
+    }
+  }
+}
+
+</script>
+
 
 </body>
 </html>

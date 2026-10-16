@@ -1,0 +1,206 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tool Room — Admin Inventory</title>
+
+  <style>
+    :root {
+      --primary: #20282D;
+      --accent: #FF6B1A;
+      --background: #f4f6f7;
+      --surface: #ffffff;
+      --text: #20282D;
+      --muted: #657078;
+      --border: #d9dfe2;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--background);
+      color: var(--text);
+      font-family: Arial, sans-serif;
+    }
+
+    header {
+      background: var(--primary);
+      color: white;
+      padding: 22px 18px;
+      border-bottom: 5px solid var(--accent);
+    }
+
+    header h1 {
+      margin: 0 0 6px;
+      font-size: 24px;
+    }
+
+    header p {
+      margin: 0;
+      color: #e0e5e8;
+      font-size: 14px;
+    }
+
+    main {
+      width: min(1100px, 100%);
+      margin: 0 auto;
+      padding: 22px 16px 40px;
+    }
+
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px;
+      margin-bottom: 18px;
+    }
+
+    h2 {
+      margin-top: 0;
+      font-size: 19px;
+    }
+
+    .notice {
+      background: #fff3e9;
+      border-left: 4px solid var(--accent);
+      padding: 12px;
+      border-radius: 5px;
+      line-height: 1.5;
+    }
+
+    .muted {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    input, select, button {
+      font: inherit;
+      border-radius: 7px;
+      padding: 11px 12px;
+    }
+
+    input, select {
+      border: 1px solid var(--border);
+      background: white;
+      color: var(--text);
+      width: 100%;
+    }
+
+    .toolbar input {
+      flex: 1;
+      min-width: 190px;
+    }
+
+    button {
+      border: 0;
+      background: var(--primary);
+      color: white;
+      cursor: pointer;
+    }
+
+    button:hover { opacity: 0.9; }
+
+    .back-link {
+      display: inline-block;
+      margin-bottom: 18px;
+      color: var(--text);
+    }
+
+    .status {
+      margin-top: 12px;
+      font-size: 14px;
+      overflow-wrap: anywhere;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    th, td {
+      padding: 12px 10px;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+
+    th { font-size: 13px; color: var(--muted); }
+
+    @media (max-width: 600px) {
+      header h1 { font-size: 21px; }
+      main { padding: 14px 10px 30px; }
+      .panel { padding: 14px; }
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <h1>Admin Inventory</h1>
+    <p>Tool Room inventory management</p>
+  </header>
+
+  <main>
+    <a class="back-link" href="./index.html">← Back to Tool Room</a>
+
+    <section class="panel">
+      <h2>Administrator access</h2>
+      <p class="muted">
+        This page is a starting layout. Inventory access and editing
+        will be connected only after server-side security is in place.
+      </p>
+      <div class="notice" role="status">
+        Inventory editing is not enabled yet. Your existing Tool Room
+        checkout and check-in page remains unchanged.
+      </div>
+      <div id="status" class="status">Page layout loaded.</div>
+    </section>
+
+    <section class="panel">
+      <h2>Inventory overview</h2>
+      <div class="toolbar">
+        <input
+          id="search"
+          type="search"
+          placeholder="Search tools (will be enabled next)"
+          disabled
+        >
+        <button type="button" disabled>Search</button>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Tool name</th>
+              <th>Category</th>
+              <th>Quantity</th>
+              <th>Location</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td colspan="4">Inventory connection not enabled yet.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

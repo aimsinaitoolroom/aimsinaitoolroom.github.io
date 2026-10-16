@@ -183,23 +183,25 @@
         <button type="button" disabled>Search</button>
       </div>
 
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Tool name</th>
-              <th>Category</th>
-              <th>Quantity</th>
-              <th>Location</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td colspan="4"><p id="inventoryStatus">Checking inventory connection...</p></td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+     
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>Tool name</th>
+        <th>Category</th>
+        <th>Quantity</th>
+        <th>Location</th>
+      </tr>
+    </thead>
+    <tbody id="inventoryTableBody">
+      <tr>
+        <td colspan="4">Loading inventory...</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
     </section>
   </main>
 
@@ -258,6 +260,33 @@ async function loadInventory() {
     if (toolsError) throw toolsError;
 
     console.log('INVENTORY LOADED:', tools);
+
+const tableBody = document.getElementById('inventoryTableBody');
+
+if (tableBody) {
+  tableBody.replaceChildren();
+
+  if (!tools || tools.length === 0) {
+    tableBody.innerHTML =
+      '<tr><td colspan="4">No tools found.</td></tr>';
+  } else {
+    tools.forEach((tool) => {
+      const row = document.createElement('tr');
+
+      [tool.name, tool.category, tool.quantity, tool.location]
+        .forEach((value) => {
+          const cell = document.createElement('td');
+          cell.textContent =
+            value === null || value === undefined || value === ''
+              ? '—'
+              : String(value);
+          row.appendChild(cell);
+        });
+
+      tableBody.appendChild(row);
+    });
+  }
+}
 
     if (status) {
       status.textContent =

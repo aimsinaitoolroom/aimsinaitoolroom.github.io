@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tool Room</title>
+<style>
+:root{
+  --primary:#20282D; --accent:#F5F51F; --orange:#FF6B1A;
+  --bg:#F5F5F2; --card:#FFFFFF; --text:#20282D; --sub:#626A6F; --border:#D9DDDF;
+  --bad:#B52A20;
+}
+@media (prefers-color-scheme: dark){
+  :root{ --bg:#171B1E; --card:#22282C; --text:#F2F3F3; --sub:#B5BBBE; --border:#343B40; }
+}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--bg);color:var(--text);font-family:Calibri,"Segoe UI",Arial,sans-serif;
+  padding-bottom:env(safe-area-inset-bottom,0px);}
+header{background:var(--primary);color:#fff;padding:18px 16px;padding-top:calc(18px + env(safe-area-inset-top,0px));
+  border-bottom:4px solid var(--orange);display:flex;justify-content:space-between;align-items:center;gap:10px;}
+header h1{margin:0;font-size:22px;}
+header .who{font-size:13px;opacity:.9;}
+header button{background:transparent;border:1px solid #fff;color:#fff;border-radius:8px;padding:6px 10px;font-size:13px;cursor:pointer;}
+main{max-width:640px;margin:0 auto;padding:16px;}
+.card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:12px;}
+label{display:block;font-size:14px;font-weight:bold;color:var(--sub);margin:14px 0 6px;}
+input{width:100%;padding:14px;border:1px solid var(--border);border-radius:8px;font-size:18px;background:var(--bg);color:var(--text);}
+.btn{width:100%;margin-top:18px;padding:16px;border:none;border-radius:10px;background:var(--orange);color:#fff;font-size:18px;font-weight:bold;cursor:pointer;}
+.err{color:var(--bad);margin-top:12px;font-size:14px;display:none;}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.stat{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center;}
+.stat .n{font-size:30px;font-weight:800;}
+.stat .l{font-size:13px;color:var(--sub);}
+.hidden{display:none;}
+.lang{margin-left:8px;}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>Tool Room</h1>
+    <div class="who" id="who"></div>
+  </div>
+  <div>
+    <button id="langBtn" onclick="toggleLang()">EN</button>
+    <button id="logoutBtn" class="hidden lang" onclick="logout()"></button>
+  </div>
+</header>
+
+<main>
+  <!-- LOGIN -->
+  <div id="loginView" class="card">
+    <label id="lblName"></label>
+    <input id="nameInput" type="text" autocomplete="username" autocapitalize="none" autocorrect="off">
+    <label id="lblPin"></label>
+    <input id="pinInput" type="password" inputmode="numeric" autocomplete="current-password">
+    <button class="btn" id="loginBtn" onclick="login()"></button>
+    <div class="err" id="loginErr"></div>
+  </div>
+
+  <!-- HOME (part 1: just counts) -->
+  <div id="homeView" class="hidden">
+    <div class="grid" id="stats"></div>
+    <p class="card" id="part1Note" style="font-size:13px;color:var(--sub);"></p>
+  </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL = "https://jghsynvbbnemorhyelhd.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_JAmQUU_E_kgxzMWETSceog_DQWDxPE4";
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+
+const T = {
+  es: {
+    name:"Nombre", pin:"PIN", login:"Entrar", logout:"Salir",
+    badLogin:"Nombre o PIN incorrecto.", noProfile:"Esta cuenta no tiene perfil. Avise al administrador.",
+    available:"Disponible", out:"Afuera", needs_repair:"Necesita reparación", lost:"Perdida", retired:"Retirada",
+    hello:"Hola", part1:"Versión 1: solo inicio de sesión y conteo de herramientas.", loadErr:"No se pudo cargar. Intente de nuevo."
+  },
+  en: {
+    name:"Name", pin:"PIN", login:"Log in", logout:"Log out",
+    badLogin:"Wrong name or PIN.", noProfile:"This account has no profile. Tell the admin.",
+    available:"Available", out:"Out", needs_repair:"Needs repair", lost:"Lost", retired:"Retired",
+    hello:"Hi", part1:"Version 1: login and tool counts only.", loadErr:"Could not load. Try again."
+  }
+};
+let lang = localStorage.getItem('lang') || 'es';
+let profile = null;
+
+function t(k){ return T[lang][k]; }
+
+function applyLang(){
+  document.documentElement.lang = lang;
+  document.getElementById('langBtn').textContent = lang === 'es' ? 'EN' : 'ES';
+  document.getElementById('lblName').textContent = t('name');
+  document.getElementById('lblPin').textContent = t('pin');
+  document.getElementById('loginBtn').textContent = t('login');
+  document.getElementById('logoutBtn').textContent = t('logout');
+  document.getElementById('part1Note').textContent = t('part1');
+  if(profile){
+    document.getElementById('who').textContent = t('hello') + ', ' + profile.full_name;
+    loadStats();
+  }
+}
+function toggleLang(){
+  lang = lang === 'es' ? 'en' : 'es';
+  try{ localStorage.setItem('lang', lang); }catch(e){}
+  applyLang();
+}
+
+// Crew type a first name; the app adds the hidden email domain.
+// Admin can type a full email address.
+function emailFor(name){
+  const n = name.trim().toLowerCase();
+  return n.includes('@') ? n : n + '@toolroom.local';
+}
+
+async function login(){
+  const err = document.getElementById('loginErr');
+  err.style.display = 'none';
+  const name = document.getElementById('nameInput').value;
+  const pin = document.getElementById('pinInput').value;
+  if(!name.trim() || !pin){ err.textContent = t('badLogin'); err.style.display='block'; return; }
+
+  const { error } = await sb.auth.signInWithPassword({ email: emailFor(name), password: pin });
+  if(error){ console.error(error); err.textContent = t('badLogin') + ' [' + error.message + ']'; err.style.display='block'; return; }
+  await showHome();
+}
+
+async function showHome(){
+  const err = document.getElementById('loginErr');
+  const { data: { user } } = await sb.auth.getUser();
+  if(!user){ return; }
+  const { data, error } = await sb.from('profiles').select('full_name,role,language,active').eq('id', user.id).maybeSingle();
+  if(error || !data || !data.active){
+    console.error(error);
+    await sb.auth.signOut();
+    err.textContent = t('noProfile'); err.style.display='block';
+    return;
+  }
+  profile = data;
+  document.getElementById('loginView').classList.add('hidden');
+  document.getElementById('homeView').classList.remove('hidden');
+  document.getElementById('logoutBtn').classList.remove('hidden');
+  document.getElementById('pinInput').value = '';
+  applyLang();
+}
+
+async function loadStats(){
+  const el = document.getElementById('stats');
+  // Count by status without the 1000-row default limit hiding anything
+  const statuses = ['available','out','needs_repair','lost','retired'];
+  const counts = await Promise.all(statuses.map(s =>
+    sb.from('tools').select('tool_code', { count:'exact', head:true }).eq('status', s)
+  ));
+  if(counts.some(c => c.error)){ el.innerHTML = '<div class="card">' + t('loadErr') + '</div>'; return; }
+  el.innerHTML = statuses.map((s,i) =>
+    '<div class="stat"><div class="n">' + (counts[i].count ?? 0) + '</div><div class="l">' + t(s) + '</div></div>'
+  ).join('');
+}
+
+async function logout(){
+  await sb.auth.signOut();
+  profile = null;
+  document.getElementById('homeView').classList.add('hidden');
+  document.getElementById('loginView').classList.remove('hidden');
+  document.getElementById('logoutBtn').classList.add('hidden');
+  document.getElementById('who').textContent = '';
+}
+
+(async function init(){
+  applyLang();
+  const { data: { session } } = await sb.auth.getSession();
+  if(session) await showHome();
+})();
+</script>
+</body>
+</html>

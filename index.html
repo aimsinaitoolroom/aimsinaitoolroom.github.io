@@ -148,6 +148,11 @@ textarea{min-height:70px; resize:vertical;}
 .cond-btn.sel-good{border-color:var(--good); background:var(--good-bg); color:var(--good);}
 .cond-btn.sel-issue{border-color:var(--issue); background:var(--issue-bg); color:var(--issue);}
 .cond-btn.sel-bad{border-color:var(--bad); background:var(--bad-bg); color:var(--bad);}
+.logrow{display:flex; justify-content:space-between; align-items:flex-start; gap:10px; padding:10px 0; border-bottom:1px solid var(--border); font-size:13px;}
+.logrow:last-child{border-bottom:none;}
+.l-name{font-weight:bold; font-size:14px;}
+.l-meta{color:var(--sub); margin-top:2px;}
+.export-btn{width:100%; padding:12px; border-radius:8px; border:1px solid var(--border); background:var(--primary); color:#fff; font-weight:bold; margin-bottom:14px;}
 
 #toast{
   position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:var(--primary);
@@ -204,6 +209,8 @@ textarea{min-height:70px; resize:vertical;}
 
     <h2 class="section" id="hRecent"></h2>
     <div id="recentList"></div>
+
+    <button class="tap-btn" id="btnLog" onclick="openFullLog()"></button>
   </div>
 </main>
 
@@ -224,6 +231,19 @@ textarea{min-height:70px; resize:vertical;}
     <div class="sheet-actions">
       <button class="btn-cancel" id="btnCancel" onclick="closeAll()"></button>
       <button class="btn-submit" id="btnSubmit" onclick="submitCheckout()" disabled></button>
+    </div>
+  </div>
+</div>
+
+<!-- Full Log sheet -->
+<div class="overlay" id="overlayLog">
+  <div class="sheet">
+    <h3 id="logTitle"></h3>
+    <button class="export-btn hidden" id="btnExport" onclick="exportCSV()"></button>
+    <div id="logList"></div>
+    <button class="tap-btn hidden" id="btnLogMore" onclick="loadMoreLog()"></button>
+    <div class="sheet-actions">
+      <button class="btn-cancel" id="btnLogClose" onclick="closeAll()"></button>
     </div>
   </div>
 </div>
@@ -295,6 +315,9 @@ const T = {
     confirmIn:"Devolver", nothingToReturn:"No hay nada afuera por ahora.",
     pickCondition:"Elija una condición primero.", needNote:"Escriba una nota corta sobre el problema.",
     doneIn:"Devuelta:", errNotOut:"Esa herramienta ya fue devuelta.",
+    viewLog:"Ver historial completo →", logTitle:"Historial completo",
+    exportCsv:"⇩ Exportar todo a CSV (abre en Excel)", loadMore:"Cargar más",
+    noEntries:"Sin entradas todavía.", close:"Cerrar",
     errNotAvailable:"Esa herramienta ya no está disponible.", errGeneric:"No se pudo guardar. Intente de nuevo.",
     loadErr:"No se pudo cargar. Intente de nuevo."
   },
@@ -322,6 +345,9 @@ const T = {
     confirmIn:"Check It In", nothingToReturn:"Nothing is checked out right now.",
     pickCondition:"Pick a condition first.", needNote:"Add a quick note on what's wrong.",
     doneIn:"Checked in:", errNotOut:"That item was already checked in.",
+    viewLog:"View Full Log →", logTitle:"Full Log",
+    exportCsv:"⇩ Export All Entries as CSV (opens in Excel)", loadMore:"Load more",
+    noEntries:"No entries yet.", close:"Close",
     errNotAvailable:"That item is no longer available.", errGeneric:"Couldn't save. Try again.",
     loadErr:"Couldn't load. Try again."
   }
@@ -389,6 +415,12 @@ function applyLang(){
   $('lblWrong').textContent = t('whatsWrong');
   $('btnInCancel').textContent = t('cancel');
   $('btnInSubmit').textContent = t('confirmIn');
+  $('btnLog').textContent = t('viewLog');
+  $('logTitle').textContent = t('logTitle');
+  $('btnExport').textContent = t('exportCsv');
+  $('btnLogMore').textContent = t('loadMore');
+  $('btnLogClose').textContent = t('close');
+  if(profile){ $('btnExport').classList.toggle('hidden', profile.role !== 'admin'); }
   if(profile){
     $('who').textContent = t('hello') + ', ' + profile.full_name + (profile.role === 'admin' ? ' (' + t('admin') + ')' : '');
     $('outAs').textContent = t('outAs') + ' ' + profile.full_name;
@@ -614,6 +646,7 @@ function closeAll(){
   $('overlayOut').classList.remove('show');
   $('overlayPicker').classList.remove('show');
   $('overlayIn').classList.remove('show');
+  $('overlayLog').classList.remove('show');
 }
 
 function renderPicks(){
@@ -758,6 +791,127 @@ async function submitCheckin(){
   await loadAll();
 }
 
+/* ---------- FULL LOG + CSV EXPORT ---------- */
+const LOG_PAGE = 50;
+let logLoaded = 0;
+
+const LOG_SELECT = 'id,tool_code,out_at,in_at,condition,condition_note,notes_out,' +
+  'tools(name_en,category),' +
+  'owner:profiles!checkouts_user_id_fkey(full_name),' +
+  'checker:profiles!checkouts_checked_in_by_fkey(full_name)';
+
+function fmtDateTime(ts){
+  if(!ts) return '';
+  return new Date(ts).toLocaleString(lang === 'es' ? 'es-US' : 'en-US',
+    { month:'short', day:'numeric', hour:'numeric', minute:'2-digit', timeZone:TZ });
+}
+
+function logRow(c){
+  let status, cls;
+  if(!c.in_at){ status = t('outStat').toUpperCase(); cls = 'pill-out'; }
+  else if(c.condition === 'good'){ status = t('good'); cls = 'pill-out'; }
+  else if(c.condition === 'broken'){ status = t('broken'); cls = 'pill-bad'; }
+  else { status = t('hasIssue'); cls = 'pill-issue'; }
+
+  const div = document.createElement('div');
+  div.className = 'logrow';
+  div.innerHTML =
+    '<div>' +
+      '<div class="l-name">' + codeTag(c.tool_code) + escapeHtml(c.tools ? c.tools.name_en : '') + '</div>' +
+      '<div class="l-meta">' + escapeHtml(c.owner ? c.owner.full_name : '') + ' — ' + fmtDateTime(c.out_at) +
+        (c.in_at ? ' → ' + fmtDateTime(c.in_at) : '') + '</div>' +
+      (c.notes_out ? '<div class="l-meta">' + escapeHtml(c.notes_out) + '</div>' : '') +
+      (c.condition_note ? '<div class="l-meta"><em>' + escapeHtml(c.condition_note) + '</em></div>' : '') +
+    '</div>' +
+    '<span class="pill ' + cls + '">' + status + '</span>';
+  return div;
+}
+
+async function openFullLog(){
+  $('logList').innerHTML = '';
+  logLoaded = 0;
+  $('btnLogMore').classList.add('hidden');
+  $('overlayLog').classList.add('show');
+  await loadMoreLog();
+}
+
+async function loadMoreLog(){
+  const btn = $('btnLogMore');
+  btn.disabled = true;
+  const { data, error } = await sb.from('checkouts').select(LOG_SELECT)
+    .order('out_at', { ascending:false })
+    .order('id', { ascending:false })
+    .range(logLoaded, logLoaded + LOG_PAGE - 1);
+  btn.disabled = false;
+  if(error){ console.error(error); toast(t('loadErr')); return; }
+
+  const rows = data || [];
+  logLoaded += rows.length;
+  const el = $('logList');
+  rows.forEach(c => el.appendChild(logRow(c)));
+  if(!logLoaded){ el.innerHTML = '<div class="empty">' + t('noEntries') + '</div>'; }
+  btn.classList.toggle('hidden', rows.length < LOG_PAGE);
+}
+
+function csvCell(v){
+  return '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+}
+function csvDate(ts){
+  return ts ? new Date(ts).toLocaleString('sv-SE', { timeZone:TZ }) : '';
+}
+
+async function exportCSV(){
+  if(!profile || profile.role !== 'admin') return;
+  const btn = $('btnExport');
+  btn.disabled = true;
+  try{
+    let all = [];
+    let from = 0;
+    while(true){
+      const { data, error } = await sb.from('checkouts').select(LOG_SELECT)
+        .order('out_at', { ascending:false })
+        .order('id', { ascending:false })
+        .range(from, from + 999);
+      if(error) throw error;
+      all = all.concat(data || []);
+      if(!data || data.length < 1000) break;
+      from += 1000;
+    }
+
+    const head = ['Tool Code','Tool Name','Category','Checked Out By','Date Out (LA time)',
+                  'Date In (LA time)','Checked In By','Condition','Condition Note','Notes When Out'];
+    const lines = [head.map(csvCell).join(',')];
+    all.forEach(c => {
+      lines.push([
+        c.tool_code,
+        c.tools ? c.tools.name_en : '',
+        c.tools ? c.tools.category : '',
+        c.owner ? c.owner.full_name : '',
+        csvDate(c.out_at),
+        csvDate(c.in_at),
+        c.checker ? c.checker.full_name : '',
+        c.in_at ? c.condition : 'OUT',
+        c.condition_note,
+        c.notes_out
+      ].map(csvCell).join(','));
+    });
+
+    // The leading ﻿ makes Excel read Spanish accents correctly.
+    const blob = new Blob(['﻿' + lines.join('\r\n')], { type:'text/csv;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'tool-room-log-' + new Date().toLocaleDateString('sv-SE', { timeZone:TZ }) + '.csv';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  }catch(e){
+    console.error(e);
+    toast(t('errGeneric'));
+  }
+  btn.disabled = false;
+}
+
 /* ---------- OTHER ACTIONS ---------- */
 
 async function extendCheckout(id){
@@ -778,12 +932,14 @@ async function markFixed(x){
   toast(t('fixedDone') + ' ' + x.tool_code);
   await loadAll();
 }
+
 /* ---------- ENTER KEY LOGS IN ---------- */
 ['nameInput','pinInput'].forEach(id => {
   $(id).addEventListener('keydown', e => {
     if(e.key === 'Enter'){ e.preventDefault(); login(); }
   });
 });
+
 /* ---------- START ---------- */
 (async function init(){
   applyLang();

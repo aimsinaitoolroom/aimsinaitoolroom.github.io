@@ -152,6 +152,8 @@ textarea{min-height:70px; resize:vertical;}
 .logrow:last-child{border-bottom:none;}
 .l-name{font-weight:bold; font-size:14px;}
 .l-meta{color:var(--sub); margin-top:2px;}
+.pre{white-space:pre-line;}
+.warn{color:var(--issue); font-size:12px; font-weight:bold; margin-top:4px;}
 .export-btn{width:100%; padding:12px; border-radius:8px; border:1px solid var(--border); background:var(--primary); color:#fff; font-weight:bold; margin-bottom:14px;}
 
 #toast{
@@ -248,6 +250,24 @@ textarea{min-height:70px; resize:vertical;}
   </div>
 </div>
 
+<!-- Fix sheet (admin) -->
+<div class="overlay" id="overlayFix">
+  <div class="sheet">
+    <h3 id="fixTitle"></h3>
+    <div class="note pre hidden" id="fixReported"></div>
+    <label id="lblWork"></label>
+    <textarea id="fixWork"></textarea>
+    <label id="lblCost"></label>
+    <input type="text" id="fixCost" inputmode="decimal" autocomplete="off">
+    <label id="lblApproved"></label>
+    <input type="text" id="fixApproved" autocomplete="off">
+    <div class="sheet-actions">
+      <button class="btn-cancel" id="btnFixCancel" onclick="closeAll()"></button>
+      <button class="btn-submit" id="btnFixSubmit" onclick="submitFix()"></button>
+    </div>
+  </div>
+</div>
+
 <!-- Check In picker sheet -->
 <div class="overlay" id="overlayPicker">
   <div class="sheet">
@@ -320,6 +340,9 @@ const T = {
     noEntries:"Sin entradas todavía.", close:"Cerrar",
     cancelBtn:"¿Herramienta equivocada? Cancelar", cancelled:"Cancelada",
     cancelDone:"Salida cancelada:", errTooLate:"Ya pasó el tiempo para cancelar.",
+    reportedBy:"Reportado por", knownIssue:"Problema reportado:",
+    fixTitle:"Marcar arreglada:", lblWork:"¿Qué se hizo?", lblCost:"Costo ($)", lblApproved:"Aprobado por",
+    badCost:"Costo inválido.",
     errNotAvailable:"Esa herramienta ya no está disponible.", errGeneric:"No se pudo guardar. Intente de nuevo.",
     loadErr:"No se pudo cargar. Intente de nuevo."
   },
@@ -352,6 +375,9 @@ const T = {
     noEntries:"No entries yet.", close:"Close",
     cancelBtn:"Wrong item? Cancel", cancelled:"Cancelled",
     cancelDone:"Checkout cancelled:", errTooLate:"Too late to cancel.",
+    reportedBy:"Reported by", knownIssue:"Reported issue:",
+    fixTitle:"Mark fixed:", lblWork:"What was done?", lblCost:"Cost ($)", lblApproved:"Approved by",
+    badCost:"Invalid cost.",
     errNotAvailable:"That item is no longer available.", errGeneric:"Couldn't save. Try again.",
     loadErr:"Couldn't load. Try again."
   }
@@ -367,6 +393,8 @@ let recent = [];
 let selectedTool = null;
 let refreshTimer = null;
 let cancelTimer = null;
+let repairsByTool = {};
+let fixTarget = null;
 const CANCEL_MS = 3 * 60 * 1000;   // how long someone can undo a checkout (must match the database: 3 minutes)
 
 function t(k){ return T[lang][k]; }
@@ -426,6 +454,11 @@ function applyLang(){
   $('btnExport').textContent = t('exportCsv');
   $('btnLogMore').textContent = t('loadMore');
   $('btnLogClose').textContent = t('close');
+  $('lblWork').textContent = t('lblWork');
+  $('lblCost').textContent = t('lblCost');
+  $('lblApproved').textContent = t('lblApproved');
+  $('btnFixCancel').textContent = t('cancel');
+  $('btnFixSubmit').textContent = t('markFixed');
   if(profile){ $('btnExport').classList.toggle('hidden', profile.role !== 'admin'); }
   if(profile){
     $('who').textContent = t('hello') + ', ' + profile.full_name + (profile.role === 'admin' ? ' (' + t('admin') + ')' : '');
@@ -503,7 +536,7 @@ async function logout(){
 
 /* ---------- LOAD DATA ---------- */
 async function loadAll(){
-  const [toolsRes, outsRes, recentRes] = await Promise.all([
+  const [toolsRes, outsRes, recentRes, repairsRes] = await Promise.all([
     sb.from('tools')
       .select('tool_code,name_en,category,location,status,needs_attention,attention_note')
       .order('tool_code'),
@@ -516,7 +549,10 @@ async function loadAll(){
       .not('in_at', 'is', null)
       .is('cancelled_at', null)
       .order('in_at', { ascending:false })
-      .limit(8)
+      .limit(8),
+    sb.from('repairs')
+      .select('id,tool_code,severity,status,reported_at,reported_note,sent_to,reporter:profiles!repairs_reported_by_fkey(full_name)')
+      .neq('status', 'fixed')
   ]);
 
   if(toolsRes.error || outsRes.error || recentRes.error){
@@ -527,11 +563,20 @@ async function loadAll(){
   tools = toolsRes.data || [];
   outs = outsRes.data || [];
   recent = recentRes.data || [];
+  // If repairs can't load, the page still works; it just loses the "reported by" details.
+  repairsByTool = {};
+  if(repairsRes.error){ console.error(repairsRes.error); }
+  (repairsRes.data || []).forEach(r => { repairsByTool[r.tool_code] = r; });
   render();
 }
 
 /* ---------- RENDER ---------- */
 function codeTag(code){ return '<span class="code">' + escapeHtml(code) + '</span>'; }
+
+function warnHtml(x){
+  if(!x.needs_attention) return '';
+  return '<div class="warn">⚠️ ' + t('knownIssue') + ' ' + escapeHtml(x.attention_note || '') + '</div>';
+}
 
 function render(){
   // Inventory counts
@@ -548,7 +593,17 @@ function render(){
   $('stats').innerHTML = statsHtml;
 
   // Needs attention
-  const attn = tools.filter(x => x.needs_attention || x.status === 'needs_repair');
+  // Broken first, then issues; oldest report on top
+  const attn = tools.filter(x => x.needs_attention || x.status === 'needs_repair').sort((a, b) => {
+    const ab = a.status === 'needs_repair' ? 0 : 1;
+    const bb = b.status === 'needs_repair' ? 0 : 1;
+    if(ab !== bb) return ab - bb;
+    const ar = repairsByTool[a.tool_code];
+    const br = repairsByTool[b.tool_code];
+    const at = ar ? new Date(ar.reported_at).getTime() : Infinity;
+    const bt = br ? new Date(br.reported_at).getTime() : Infinity;
+    return (at - bt) || a.tool_code.localeCompare(b.tool_code);
+  });
   const attnEl = $('attnList');
   const cnt = $('attnCount');
   if(attn.length){
@@ -557,15 +612,19 @@ function render(){
     attnEl.innerHTML = '';
     attn.forEach(x => {
       const isBroken = x.status === 'needs_repair';
+      const rp = repairsByTool[x.tool_code];
+      const noteText = (rp && rp.reported_note) || x.attention_note;
       const div = document.createElement('div');
       div.className = 'card attn';
       div.innerHTML =
         '<div class="row-top"><div>' +
           '<div class="item-name">' + codeTag(x.tool_code) + escapeHtml(x.name_en) + '</div>' +
-          '<div class="meta">' + escapeHtml(x.location || '') + '</div>' +
+          '<div class="meta">' + escapeHtml(x.location || '') +
+            (rp && rp.reported_at ? ' — ' + t('reportedBy') + ' ' + escapeHtml(rp.reporter ? rp.reporter.full_name : '?') + ', ' + fmtDate(rp.reported_at) : '') +
+          '</div>' +
         '</div><span class="pill ' + (isBroken ? 'pill-bad' : 'pill-issue') + '">' +
           (isBroken ? t('broken') : t('hasIssue')) + '</span></div>' +
-        (x.attention_note ? '<div class="note">' + escapeHtml(x.attention_note) + '</div>' : '');
+        (noteText ? '<div class="note pre">' + escapeHtml(noteText) + '</div>' : '');
       if(profile && profile.role === 'admin'){
         const b = document.createElement('button');
         b.className = 'tap-btn';
@@ -668,6 +727,7 @@ function closeAll(){
   $('overlayPicker').classList.remove('show');
   $('overlayIn').classList.remove('show');
   $('overlayLog').classList.remove('show');
+  $('overlayFix').classList.remove('show');
 }
 
 function renderPicks(){
@@ -691,6 +751,7 @@ function renderPicks(){
     b.className = 'pick';
     b.innerHTML = codeTag(x.tool_code) + escapeHtml(x.name_en) +
       '<div class="sub">' + escapeHtml([x.category, x.location].filter(Boolean).join(' — ')) + '</div>';
+    b.insertAdjacentHTML('beforeend', warnHtml(x));
     b.onclick = () => chooseTool(x);
     el.appendChild(b);
   });
@@ -704,6 +765,7 @@ function chooseTool(x){
   c.innerHTML = t('chosen') + ' ' + codeTag(x.tool_code) + '<strong>' + escapeHtml(x.name_en) + '</strong>' +
     '<div class="sub" style="font-size:12px;color:var(--sub);margin-top:2px;">' +
     escapeHtml([x.category, x.location].filter(Boolean).join(' — ')) + '</div>';
+  c.insertAdjacentHTML('beforeend', warnHtml(x));
   c.classList.remove('hidden');
   c.onclick = () => {
     selectedTool = null;
@@ -956,15 +1018,43 @@ async function extendCheckout(id){
   await loadAll();
 }
 
-async function markFixed(x){
-  const { error } = await sb.from('tools').update({
-    status: x.status === 'needs_repair' ? 'available' : x.status,
-    needs_attention: false,
-    attention_note: '',
-    updated_at: new Date().toISOString()
-  }).eq('tool_code', x.tool_code);
+/* ---------- FIX FORM (ADMIN) ---------- */
+function markFixed(x){
+  fixTarget = x;
+  const rp = repairsByTool[x.tool_code];
+  $('fixTitle').textContent = t('fixTitle') + ' ' + x.tool_code + ' ' + x.name_en;
+  const noteText = (rp && rp.reported_note) || x.attention_note || '';
+  $('fixReported').textContent = noteText;
+  $('fixReported').classList.toggle('hidden', !noteText);
+  $('fixWork').value = '';
+  $('fixCost').value = '';
+  $('fixApproved').value = '';
+  $('btnFixSubmit').disabled = false;
+  $('overlayFix').classList.add('show');
+}
+
+async function submitFix(){
+  if(!fixTarget) return;
+  const raw = $('fixCost').value.replace(/[$,\s]/g, '');
+  let cost = null;
+  if(raw !== ''){
+    cost = Number(raw);
+    if(!isFinite(cost) || cost < 0){ toast(t('badCost')); return; }
+  }
+  const btn = $('btnFixSubmit');
+  btn.disabled = true;
+  const { error } = await sb.rpc('fix_tool', {
+    p_tool_code: fixTarget.tool_code,
+    p_work_done: $('fixWork').value.trim(),
+    p_cost: cost,
+    p_approved_by: $('fixApproved').value.trim()
+  });
+  btn.disabled = false;
   if(error){ console.error(error); toast(t('errGeneric')); return; }
-  toast(t('fixedDone') + ' ' + x.tool_code);
+  const code = fixTarget.tool_code;
+  fixTarget = null;
+  closeAll();
+  toast(t('fixedDone') + ' ' + code);
   await loadAll();
 }
 

@@ -778,7 +778,12 @@ async function markFixed(x){
   toast(t('fixedDone') + ' ' + x.tool_code);
   await loadAll();
 }
-
+/* ---------- ENTER KEY LOGS IN ---------- */
+['nameInput','pinInput'].forEach(id => {
+  $(id).addEventListener('keydown', e => {
+    if(e.key === 'Enter'){ e.preventDefault(); login(); }
+  });
+});
 /* ---------- START ---------- */
 (async function init(){
   applyLang();

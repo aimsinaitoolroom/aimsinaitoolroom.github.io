@@ -318,6 +318,8 @@ const T = {
     viewLog:"Ver historial completo →", logTitle:"Historial completo",
     exportCsv:"⇩ Exportar todo a CSV (abre en Excel)", loadMore:"Cargar más",
     noEntries:"Sin entradas todavía.", close:"Cerrar",
+    cancelBtn:"¿Herramienta equivocada? Cancelar", cancelled:"Cancelada",
+    cancelDone:"Salida cancelada:", errTooLate:"Ya pasó el tiempo para cancelar.",
     errNotAvailable:"Esa herramienta ya no está disponible.", errGeneric:"No se pudo guardar. Intente de nuevo.",
     loadErr:"No se pudo cargar. Intente de nuevo."
   },
@@ -348,6 +350,8 @@ const T = {
     viewLog:"View Full Log →", logTitle:"Full Log",
     exportCsv:"⇩ Export All Entries as CSV (opens in Excel)", loadMore:"Load more",
     noEntries:"No entries yet.", close:"Close",
+    cancelBtn:"Wrong item? Cancel", cancelled:"Cancelled",
+    cancelDone:"Checkout cancelled:", errTooLate:"Too late to cancel.",
     errNotAvailable:"That item is no longer available.", errGeneric:"Couldn't save. Try again.",
     loadErr:"Couldn't load. Try again."
   }
@@ -362,6 +366,8 @@ let outs = [];
 let recent = [];
 let selectedTool = null;
 let refreshTimer = null;
+let cancelTimer = null;
+const CANCEL_MS = 3 * 60 * 1000;   // how long someone can undo a checkout (must match the database: 3 minutes)
 
 function t(k){ return T[lang][k]; }
 function $(id){ return document.getElementById(id); }
@@ -508,6 +514,7 @@ async function loadAll(){
     sb.from('checkouts')
       .select('id,tool_code,out_at,in_at,condition,condition_note,tools(name_en),owner:profiles!checkouts_user_id_fkey(full_name)')
       .not('in_at', 'is', null)
+      .is('cancelled_at', null)
       .order('in_at', { ascending:false })
       .limit(8)
   ]);
@@ -575,6 +582,7 @@ function render(){
 
   // Currently out
   const outEl = $('outList');
+  let soonest = Infinity;
   if(outs.length){
     outEl.innerHTML = '';
     outs.forEach(c => {
@@ -601,11 +609,24 @@ function render(){
         b.onclick = () => extendCheckout(c.id);
         div.appendChild(b);
       }
+      // "Wrong item? Cancel" - only for the person who took it, only for the first 3 minutes
+      const ageMs = Date.now() - new Date(c.out_at).getTime();
+      if(me && c.user_id === me.id && ageMs < CANCEL_MS){
+        const cb = document.createElement('button');
+        cb.className = 'tap-btn';
+        cb.textContent = t('cancelBtn');
+        cb.onclick = () => cancelCheckout(c);
+        div.appendChild(cb);
+        soonest = Math.min(soonest, CANCEL_MS - ageMs);
+      }
       outEl.appendChild(div);
     });
   } else {
     outEl.innerHTML = '<div class="empty">' + t('nothingOut') + '</div>';
   }
+  // Redraw right when the cancel button should disappear
+  clearTimeout(cancelTimer);
+  if(soonest !== Infinity){ cancelTimer = setTimeout(render, soonest + 300); }
 
   // Recently checked in
   const recEl = $('recentList');
@@ -795,7 +816,7 @@ async function submitCheckin(){
 const LOG_PAGE = 50;
 let logLoaded = 0;
 
-const LOG_SELECT = 'id,tool_code,out_at,in_at,condition,condition_note,notes_out,' +
+const LOG_SELECT = 'id,tool_code,out_at,in_at,cancelled_at,condition,condition_note,notes_out,' +
   'tools(name_en,category),' +
   'owner:profiles!checkouts_user_id_fkey(full_name),' +
   'checker:profiles!checkouts_checked_in_by_fkey(full_name)';
@@ -808,7 +829,8 @@ function fmtDateTime(ts){
 
 function logRow(c){
   let status, cls;
-  if(!c.in_at){ status = t('outStat').toUpperCase(); cls = 'pill-out'; }
+  if(c.cancelled_at){ status = t('cancelled'); cls = 'pill-issue'; }
+  else if(!c.in_at){ status = t('outStat').toUpperCase(); cls = 'pill-out'; }
   else if(c.condition === 'good'){ status = t('good'); cls = 'pill-out'; }
   else if(c.condition === 'broken'){ status = t('broken'); cls = 'pill-bad'; }
   else { status = t('hasIssue'); cls = 'pill-issue'; }
@@ -890,7 +912,7 @@ async function exportCSV(){
         csvDate(c.out_at),
         csvDate(c.in_at),
         c.checker ? c.checker.full_name : '',
-        c.in_at ? c.condition : 'OUT',
+        c.cancelled_at ? 'CANCELLED' : (c.in_at ? c.condition : 'OUT'),
         c.condition_note,
         c.notes_out
       ].map(csvCell).join(','));
@@ -910,6 +932,19 @@ async function exportCSV(){
     toast(t('errGeneric'));
   }
   btn.disabled = false;
+}
+
+/* ---------- CANCEL (WRONG ITEM) ---------- */
+async function cancelCheckout(c){
+  const { error } = await sb.rpc('cancel_checkout', { p_checkout_id: c.id });
+  if(error){
+    console.error(error);
+    toast((error.message || '').includes('too_late') ? t('errTooLate') : t('errGeneric'));
+    await loadAll();
+    return;
+  }
+  toast(t('cancelDone') + ' ' + c.tool_code + ' ' + (c.tools ? c.tools.name_en : ''));
+  await loadAll();
 }
 
 /* ---------- OTHER ACTIONS ---------- */

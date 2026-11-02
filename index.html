@@ -893,9 +893,9 @@ function fmtDateTime(ts){
 
 function logRow(c){
   let status, cls;
-  if(c.cancelled_at){ status = t('cancelled'); cls = 'pill-issue'; }
+  if(c.cancelled_at){ status = t('cancelled'); cls = 'pill-cancel'; }
   else if(!c.in_at){ status = t('outStat').toUpperCase(); cls = 'pill-out'; }
-  else if(c.condition === 'good'){ status = t('good'); cls = 'pill-out'; }
+  else if(c.condition === 'good'){ status = t('good'); cls = 'pill-good'; }
   else if(c.condition === 'broken'){ status = t('broken'); cls = 'pill-bad'; }
   else { status = t('hasIssue'); cls = 'pill-issue'; }
 
